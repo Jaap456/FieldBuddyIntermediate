@@ -1,0 +1,506 @@
+<apex:page standardController="FIELDBUDDY__Work_Order__c" extensions="FB_WorkOrderDetailsToPDFController" showHeader="false" renderas="pdf" applyHtmlTag="false" standardStylesheets="false">
+   <apex:variable var="workorder" value="{!workorder}" />
+   <apex:variable var="location" value="{!location}" />
+   <apex:variable var="account" value="{!account}" />
+   <apex:variable var="sr" value="{!sr}" />
+    
+<html>
+    <head>    
+        <style>
+        
+        @page
+        {
+            margin-bottom: 2cm;
+            margin-left: 1.5cm;
+            margin-right: 1cm;
+            margin-top: 1.0cm;
+            size: 21.0cm 29.7cm;
+        }
+        #header
+        {
+            float: right;
+            margin-right: -20px;
+        }
+        #line
+        {
+            background: black;
+            height: 2px;
+            width: 100%;
+        }
+        body
+        {
+            font-family: 'Verdana';
+            font-size: 15px;
+        }
+        p.firstpage
+        {
+            font-size: 25px;
+            font-weight: bold;
+        }
+        h1
+        {
+            color: red;
+            font-size: 40px;
+            font-weight: bold;
+        }
+        h2
+        {
+            font-size: 20px;
+            font-weight: bold;
+        }
+        table.inner
+        {
+            margin-left: 100px;
+        }
+        table
+        {
+            border-collapse: collapse;
+            width: 100%;
+        }
+        td, th
+        {
+            padding: 2px;
+            text-align: left;
+        }
+        th
+        {
+            font-weight: bold;
+        }
+        table.detaillist td, th
+        {
+            width: 100%;
+        }
+        .w5
+        {
+            width: 5%;
+        }
+        .w8
+        {
+            width: 8%;
+        }
+        .w20
+        {
+            width: 20%;
+        }
+        .border_sum
+        {
+            border: 1px solid black;
+            border-style: double none none none;
+        }
+        table.tab1 td, th
+        {
+            width: 100%;
+        }
+        table.tab2 td, th
+        {
+            width: 50%;
+        }
+        table.tab4 td, th
+        {
+            width: 25%;
+        }
+        table.tab5 td, th
+        {
+            width: 20%;
+        }
+        tr.grey td, th
+        {
+            background-color: #C0C0C0;
+        }
+        .right
+        {
+            text-align: right;
+        }
+        .left
+        {
+            text-align: left;
+        }
+        .imagetable
+        {
+            border: 0px;
+            height: auto;
+            padding: 0 10px 10px 0;
+            width: 325px;
+        }
+        
+        </style>    
+    </head> 
+    <body>
+    <table align="center" width="100%">
+                <tr>
+                     <td style="text-align: center;"><b>{!workOrder.Name}</b></td>
+                </tr>
+            </table>
+    <table width="100%" style="page-break-after:always;">
+        <tr>
+            <td>
+                <div id="header">
+                    <apex:image url="{!$Resource.FuduraLogo}"/>     
+                </div>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <div id="line"></div>
+            </td>
+        </tr>
+        <tr style="height:250px;"/>
+        <tr>
+            <td>
+                <table class="inner">
+                    <tr>
+                        <td colspan="2">
+                            <h1>Onderhoudsrapport</h1>
+                            <p class="firstpage">{!workorder.Werkbon_omschrijving__c}<br/>
+                            {!account.Name}<br/>
+                            {!location.FIELDBUDDY__City__c}</p>
+                        </td>
+                    </tr>
+                    <tr style="height:250px;"/>
+                    <tr>
+                        <td width="175">
+                            <h3>
+                                Datum uitvoering:
+                                Ploegleider:
+                            </h3>
+                        </td>
+                        <td>
+                            <h3>
+                                {!StartTime}<br/>
+                                {!workorder.Ploegleider__r.Name}
+                            </h3>
+                        </td>
+                    </tr>
+                </table>        
+            </td>
+        </tr>
+    </table>
+    
+    <table width="100%">
+        <tr>
+            <td >
+                <h2>Algemene gegevens</h2>
+            </td>
+        </tr>
+    </table>
+    
+    <br/>
+    
+    <table width="100%">
+        <tr style="background: #C0C0C0">
+            <td colspan="2">
+                <b>Klant</b>
+            </td>
+        </tr> 
+        <tr>
+            <td width="50%">
+                Klantnaam:
+            </td>
+            <td>
+                {!account.Name}     
+            </td>
+        </tr> 
+        <tr>
+            <td>
+                Adres:
+            </td>
+            <td>
+                {!account.BillingStreet}        
+            </td>
+        </tr> 
+        <tr>
+            <td>
+                Postcode, Plaats:
+            </td>
+            <td>
+                {!account.BillingPostalCode}   {!account.BillingCity}
+            </td>
+        </tr> 
+        <tr>
+            <td>
+                Telefoonnummer:
+            </td>
+            <td>
+                {!account.Phone}    
+            </td>
+        </tr>
+        <tr>
+            <td>
+                Boekingsnummer:
+            </td>
+            <td>
+                {!workorder.Boekingsnummer__c}  
+            </td>
+        </tr>
+        </table>
+        
+        <br/>
+        
+        <table width="100%">
+        <tr style="background: #C0C0C0">
+            <td colspan="2">
+                <b>Contactpersoon Technisch</b>
+            </td>
+        </tr> 
+        <tr>
+            <td width="50%">
+                Naam:
+            </td>
+            <td>
+                {!location.Contactpersoon_technisch__r.FirstName} {!location.Contactpersoon_technisch__r.LastName}
+            </td>
+        </tr> 
+        <tr>
+            <td>
+                Mobiel telefoonnummer:
+            </td>
+            <td>
+                {!location.Contactpersoon_technisch__r.MobilePhone}     
+            </td>
+        </tr> 
+        <tr>
+            <td>
+                Algemeen telefoonnummer:
+            </td>
+            <td>
+                {!location.Contactpersoon_technisch__r.Phone}   
+            </td>
+        </tr>
+        </table>
+        
+        <br/>
+        
+        <table width="100%">
+        <tr style="background: #C0C0C0">
+            <td colspan="2">
+                <b>Contactpersoon Intermediate</b>
+            </td>
+        </tr> 
+        <tr>
+            <td width="50%">
+                Werkvoorbereider:
+            </td>
+            <td>
+                {!workorder.Werkvoorbereider__r.FirstName}  {!workorder.Werkvoorbereider__r.LastName}       
+            </td>
+        </tr> 
+        <tr>
+            <td>
+                Werkverantwoordelijke:
+            </td>
+            <td>
+                {!workorder.Werkverantwoordelijke_Projectleider__r.FirstName} {!workorder.Werkverantwoordelijke_Projectleider__r.LastName}          
+            </td>
+        </tr>
+        </table>
+        
+        <br/>
+        
+        <table width="100%" style="page-break-after:always;">
+        <tr style="background: #C0C0C0">
+            <td colspan="2">
+                <b>Bezoekadres</b>
+            </td>
+        </tr> 
+        <tr>
+            <td  width="50%">
+                Adres:
+            </td>
+            <td>
+                {!location.FIELDBUDDY__Street__c} {!location.FIELDBUDDY__House_Number__c} {!location.FIELDBUDDY__House_Number_Suffix__c}        
+            </td>
+        </tr> 
+        <tr>
+            <td>
+                Postcode, Plaats:
+            </td>
+            <td>
+                {!location.FIELDBUDDY__Postal_Code__c}   {!location.FIELDBUDDY__City__c}       
+            </td>
+        </tr> 
+        <tr>
+            <td>
+                Stationsnaam:
+            </td>
+            <td>
+                {!workorder.Station__c}
+            </td>
+        </tr> 
+        <tr>
+            <td>
+                Melden bij:
+            </td>
+            <td>
+                {!location.Melden_bij__r.FirstName} {!location.Melden_bij__r.LastName}
+            </td>
+        </tr>
+        <tr>
+            <td>
+                Vergunning verplicht:
+            </td>
+            <td>
+                {!location.F_Vergunning_verplicht__c}
+            </td>
+        </tr>
+        <tr>
+            <td>
+                Single line schema beschikbaar:
+            </td>
+            <td>
+                {!workorder.Single_line_schema_beschikbaar__c}
+            </td>
+        </tr>
+        <tr>
+            <td>
+                Bijzonderheden:
+            </td>
+            <td>
+                {!location.Description__c}
+            </td>
+        </tr>
+    </table>
+    
+    <br/>
+        
+        <table width="100%">
+            <tr>
+             <td >
+                 <h2>Geconstateerde afwijkingen</h2>
+              </td>
+            </tr>
+        </table>
+    
+        <br/>
+        
+        <table width="100%">
+        <tr style="background: #C0C0C0">
+            <td>
+                <b>Afwijking</b>
+            </td>
+            <td>
+                <b>Geregistreerd door</b>
+            </td>
+            <td>
+                <b>Station/Asset/Veld</b>
+            </td>
+       </tr>
+       <apex:repeat value="{!wolasAfwijkingen}" var="afwijking">
+           <tr>
+                <td>
+                    {!afwijking.Afwijkingen__c} 
+                </td> 
+                <td>
+                    {!afwijking.FIELDBUDDY__Work_Order__r.Eigenaar_Naam__c}
+                </td>
+                <td>
+                    {!afwijking.Station__r.Naam__c}{!afwijking.Veld__r.Naam__c}{!afwijking.Asset__r.Naam__c}
+                </td>
+            </tr>   
+       </apex:repeat>
+       </table>
+        
+        <br/><br/>
+        
+        <table width="100%" style="page-break-after:always;">
+            <tr>
+                <td>
+                    <h2>Advies aangaande contstateringen</h2>
+                </td>
+            </tr>
+            <tr><td></td></tr>
+            <tr>
+                <td>
+                    {!workorder.Advies_na_onderhoud__c}
+                </td>
+            </tr>
+        </table>
+        
+        <br/>
+        
+        <table width="100%">
+            <tr>
+             <td >
+                 <h2>Uitgevoerde onderhoudsregels met resultaten / constateringen per asset</h2>
+              </td>
+            </tr>
+        </table>
+        
+       <apex:repeat value="{!wolasAll}" var="wola"> 
+            <h2>{!wola.Name}</h2>
+    
+            <table width="100%">
+                <tr style="background: #C0C0C0">
+                    <td colspan="4">
+                        <b>Algemene gegevens</b>
+                    </td>
+                </tr>
+                <tr>
+                    <td>
+                        Naam:
+                    </td>
+                    <td colspan="3">
+                        {!wola.Station__r.Naam__c}{!wola.Veld__r.Naam__c}{!wola.Asset__r.Naam__c}
+                    </td>
+                </tr>
+                <apex:repeat value="{!assetInformation[wola.Station__c + wola.Veld__c + wola.Asset__c]}" var="assetInfoFieldKey">
+                    <apex:repeat value="{!assetInformation[wola.Station__c + wola.Veld__c + wola.Asset__c][assetInfoFieldKey]}" var="assetInfoFieldValue">
+                        <tr>
+                            <td width="50%">
+                                {!assetInfoFieldKey}        
+                            </td>
+                            <td>
+                                {!assetInfoFieldValue}  
+                            </td>
+                        </tr>
+                    </apex:repeat>
+                </apex:repeat>
+                <tr>
+                    <td>
+                        Geconstateerde afwijkingen:
+                    </td>
+                    <td colspan="3">
+                        {!wola.Afwijkingen__c}
+                    </td>
+                </tr>
+            </table>
+            
+            <br/><br/>
+            
+            <table width="100%" style="page-break-after:always">
+                <tr style="background: #C0C0C0">
+                    <td colspan="2">
+                        <b>Onderhoudsregels</b>
+                    </td>
+                </tr>
+                <apex:repeat value="{!wolads[wola.Id]}" var="wolad">
+                    <tr>
+                        <td width="60%">
+                            {!wolad.Name}
+                        </td>
+                        <td>
+                            {!wolad.FIELDBUDDY__Value__c}
+                        </td>
+                    </tr>
+                </apex:repeat>
+            </table>
+       </apex:repeat>       
+
+    <table width="100%">
+        <tr>
+            <td >
+                <h2>Foto's</h2>
+            </td>
+        </tr>
+    </table>
+    
+    <br/>
+
+    <div style="page-break-inside:avoid;">
+        <apex:repeat value="{!attachments}" var="attachment">
+            <apex:image styleClass="imagetable" value="{!URLFOR($Action.Attachment.Download, attachment.Id)}" />   
+        </apex:repeat>
+    </div>
+    
+    </body>
+</html>
+</apex:page>
