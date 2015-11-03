@@ -1,0 +1,256 @@
+/**
+* Controller for the Work Order To PDF Functionality. Work Order Details only, without attachments.
+*
+* Description       :   Controller for the page that creates a PDF document of a Work Order.
+* Project           :   Fudura Intermediate
+* Version           :   2.2
+* Date              :   27 May 2015
+* Author (original) :   Lucas van der Ploeg
+**/
+public with sharing class FB_Backup_WODToPDFController {
+
+    public transient final FIELDBUDDY__Work_Order__c workOrder { get; set; }
+    public transient FIELDBUDDY__Location__c location { get; set; }
+    public transient Account account { get; set; }
+    public transient FIELDBUDDY__Service_Request__c sr { get; set; }
+    public transient Map<String, Checklist> checklists { get; set; }
+    public transient Map<String, String> assetMapping { get; set; }
+    public transient List<Attachment> attachments { get; set; }
+    public transient List<FIELDBUDDY__Work_Order_Part__c> parts { get; set; }
+    public transient List<Task> tasks { get; set; }
+    public transient List<FIELDBUDDY__Work_Order_Logged_Activity__c> wolasAll { get; set; }
+    public transient List<FIELDBUDDY__Work_Order_Logged_Activity__c> wolasAfwijkingen { get; set; }
+    public transient Map<Id, List<FIELDBUDDY__Work_Order_Logged_Activity_Detail__c>> wolads { get; set; }
+    public transient Map<Id, Map<String, String>> assetInformation { get; set; }
+        
+    public transient String Ontstaan_Storing { get; set; }
+    public transient String DateTime_Opened { get; set; }
+    public transient String StartTime { get; set; }
+    
+    public FB_Backup_WODToPDFController(ApexPages.StandardController stdController) {
+        List<String> fieldsToGet = new List<String>();
+        
+        fieldsToGet.add('Werkbon_omschrijving__c'); 
+        fieldsToGet.add('Name'); 
+        fieldsToGet.add('Boekingsnummer__c');
+        fieldsToGet.add('Werkvoorbereider__r.FirstName');
+        fieldsToGet.add('Werkvoorbereider__r.LastName');
+        fieldsToGet.add('Werkverantwoordelijke_Projectleider__r.FirstName');
+        fieldsToGet.add('Werkverantwoordelijke_Projectleider__r.LastName');
+        fieldsToGet.add('Single_line_schema_beschikbaar__c');
+        fieldsToGet.add('Station__c');
+        fieldsToGet.add('Owner.Name');    
+        fieldsToGet.add('Advies_na_onderhoud__c');
+        fieldsToGet.add('Ploegleider__r.Name');
+        fieldsToGet.add('T_Start_Time__c');
+        fieldsToGet.add('Storing_Constatering__c');
+        fieldsToGet.add('Storing_Oorzaak__c');
+        fieldsToGet.add('Storing_Oplossing__c');
+        fieldsToGet.add('Melder__r.FirstName');
+        fieldsToGet.add('Melder__r.LastName');
+        fieldsToGet.add('Opgeroepen_werkverantwoordelijke__c');
+        
+        fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r');
+        fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r.Name');
+        fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r.BillingStreet');
+        fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r.BillingCity');
+        fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r.BillingPostalCode');
+        fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r.Phone');
+        
+        fieldsToGet.add('FIELDBUDDY__Service_Request__r.FIELDBUDDY__Installed_Product__r.FIELDBUDDY__Location__r');
+        fieldsToGet.add('FIELDBUDDY__Service_Request__r.FIELDBUDDY__Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__City__c');
+        fieldsToGet.add('FIELDBUDDY__Service_Request__r.FIELDBUDDY__Installed_Product__r.FIELDBUDDY__Location__r.Contactpersoon_technisch__r.FirstName');
+        fieldsToGet.add('FIELDBUDDY__Service_Request__r.FIELDBUDDY__Installed_Product__r.FIELDBUDDY__Location__r.Contactpersoon_technisch__r.LastName');
+        fieldsToGet.add('FIELDBUDDY__Service_Request__r.FIELDBUDDY__Installed_Product__r.FIELDBUDDY__Location__r.Contactpersoon_technisch__r.MobilePhone');
+        fieldsToGet.add('FIELDBUDDY__Service_Request__r.FIELDBUDDY__Installed_Product__r.FIELDBUDDY__Location__r.Contactpersoon_technisch__r.Phone');
+        fieldsToGet.add('FIELDBUDDY__Service_Request__r.FIELDBUDDY__Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Street__c');
+        fieldsToGet.add('FIELDBUDDY__Service_Request__r.FIELDBUDDY__Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__House_Number__c');
+        fieldsToGet.add('FIELDBUDDY__Service_Request__r.FIELDBUDDY__Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__House_Number_Suffix__c');
+        fieldsToGet.add('FIELDBUDDY__Service_Request__r.FIELDBUDDY__Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Postal_Code__c');
+        fieldsToGet.add('FIELDBUDDY__Service_Request__r.FIELDBUDDY__Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__City__c');
+        fieldsToGet.add('FIELDBUDDY__Service_Request__r.FIELDBUDDY__Installed_Product__r.FIELDBUDDY__Location__r.Melden_bij__r.FirstName');
+        fieldsToGet.add('FIELDBUDDY__Service_Request__r.FIELDBUDDY__Installed_Product__r.FIELDBUDDY__Location__r.Melden_bij__r.LastName');
+        fieldsToGet.add('FIELDBUDDY__Service_Request__r.FIELDBUDDY__Installed_Product__r.FIELDBUDDY__Location__r.F_Vergunning_verplicht__c');
+        fieldsToGet.add('FIELDBUDDY__Service_Request__r.FIELDBUDDY__Installed_Product__r.FIELDBUDDY__Location__r.Description__c');
+        
+        fieldsToGet.add('FIELDBUDDY__Service_Request__r.FIELDBUDDY__Description__c');
+        fieldsToGet.add('FIELDBUDDY__Service_Request__r.Ontstaan_Storing__c');
+        fieldsToGet.add('FIELDBUDDY__Service_Request__r.FIELDBUDDY__DateTime_Opened__c');
+        fieldsToGet.add('FIELDBUDDY__Service_Request__r.Herkomst__c');
+        
+        if (!Test.isRunningTest()) {    
+            stdController.addFields(fieldsToGet);       
+        }
+        
+        this.workOrder = (FIELDBUDDY__Work_Order__c) stdController.getRecord(); 
+        
+        Ontstaan_Storing = (workOrder.FIELDBUDDY__Service_Request__r.Ontstaan_Storing__c != null ? (workOrder.FIELDBUDDY__Service_Request__r.Ontstaan_Storing__c.format('HH:mm') + ' uur, ' + workOrder.FIELDBUDDY__Service_Request__r.Ontstaan_Storing__c.format('dd-MM-yyyy')) : '');
+        DateTime_Opened = (workOrder.FIELDBUDDY__Service_Request__r.FIELDBUDDY__DateTime_Opened__c != null ? (workOrder.FIELDBUDDY__Service_Request__r.FIELDBUDDY__DateTime_Opened__c.format('HH:mm') + ' uur, ' + workOrder.FIELDBUDDY__Service_Request__r.FIELDBUDDY__DateTime_Opened__c.format('dd-MM-yyyy')) : '');
+        StartTime = (workOrder.T_Start_Time__c != null ? workOrder.T_Start_Time__c.format('dd-MM-yyyy') : '');
+        
+        this.location = this.workOrder.FIELDBUDDY__Service_Request__r.FIELDBUDDY__Installed_Product__r.FIELDBUDDY__Location__r; 
+        this.account = this.workOrder.Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r;      
+        this.sr = this.workOrder.FIELDBUDDY__Service_Request__r;
+        
+        //Get WOLA information. Used for Onderhoud.
+        FIELDBUDDY__Work_Order_Logged_Activity__c[] wolas = [SELECT Id, Name, Asset__r.Naam__c, Station__r.Naam__c, Veld__r.Naam__c, FIELDBUDDY__Work_Order_Item__c
+                                                            FROM FIELDBUDDY__Work_Order_Logged_Activity__c
+                                                            WHERE FIELDBUDDY__Work_Order__c = :this.workorder.Id];
+            
+        List<Id> woisAllIds = new List<Id>();   
+        for(FIELDBUDDY__Work_Order_Logged_Activity__c wola : wolas) {
+            woisAllIds.add(wola.FIELDBUDDY__Work_Order_Item__c);    
+        }
+        
+        List<FIELDBUDDY__Work_Order_Item_Detail__c> woidsAllObj = [SELECT Name, FIELDBUDDY__Work_Order_Item__c
+                                                                   FROM FIELDBUDDY__Work_Order_Item_Detail__c
+                                                                   WHERE FIELDBUDDY__Work_Order_Item__c IN :woisAllIds]; 
+        
+        //Get asset mapping
+        assetMapping = new Map<String, String>();   
+        checklists = new Map<String, Checklist>();              
+        for (FIELDBUDDY__Work_Order_Logged_Activity__c wolaItem : wolas) {
+            String name = wolaItem.Name;
+            String wolaId = wolaItem.Id;
+            wolaId = wolaId.subString(0,15);
+            
+            List<String> checkitems = new List<String>();
+            assetMapping.put(wolaId, '');
+            if(wolaItem.Station__r.Naam__c != null) {
+                assetMapping.put(wolaId, wolaItem.Station__r.Naam__c);    
+            }
+            if(wolaItem.Veld__r.Naam__c != null) {
+                assetMapping.put(wolaId, wolaItem.Veld__r.Naam__c);   
+            }
+            if(wolaItem.Asset__r.Naam__c != null) {
+                assetMapping.put(wolaId, wolaItem.Asset__r.Naam__c);  
+            }
+            
+            for (FIELDBUDDY__Work_Order_Item_Detail__c woidItem : woidsAllObj) {
+                if (wolaItem.FIELDBUDDY__Work_Order_Item__c == woidItem.FIELDBUDDY__Work_Order_Item__c) {
+                    checkitems.add(woidItem.Name);
+                }
+            }
+            
+            Checklist checklist = new Checklist();
+            checklist.id = wolaId;
+            checklist.name = name;
+            checklist.checkitems = checkitems;
+                        
+            checklists.put(wolaId, checklist);
+        }   
+        
+        //Get image attachments. Used for Storing.
+        attachments = [SELECT Id, ParentId, ContentType, BodyLength
+                       FROM Attachment
+                       WHERE ParentId = :workOrder.Id
+                       AND ContentType IN ('image/png', 'image/gif', 'image/jpg', 'image/jpeg', 'image/bmp', 'image/tiff')
+                       AND (NOT Name LIKE '%Handtekening%')
+                       ORDER BY CreatedDate ASC];
+                       
+        //Get used parts. Used for Storing.
+        parts = [SELECT Id, Name, FIELDBUDDY__Quantity__c, Actie__c
+                 FROM FIELDBUDDY__Work_Order_Part__c
+                 WHERE FIELDBUDDY__Work_Order__c = :this.workorder.Id
+                 AND Actie__c = 'Verbruikt'];
+        
+        //Get Tasks. Used for Storing.
+        tasks = [SELECT Id, Owner.Name, Subject, Description, Status
+                 FROM Task
+                 WHERE WhatId = :this.workorder.Id
+                 AND (NOT Subject LIKE '%Verbruikt%')];
+        
+        //Get WOLAs and WOLADs. For klantrapportage.
+        wolasAll = [SELECT Id, Name, Afwijkingen__c, FIELDBUDDY__Work_Order__r.Eigenaar_Naam__c, 
+                    Station__c, Station__r.Naam__c, Station__r.Beheer_station__c, Station__r.F_Stationsnummer__c, Station__r.F_Toegangsprotocol__c,
+                    Veld__c, Veld__r.Naam__c, Veld__r.Beheerder_van_het_veld__c, Veld__r.Eigenaar_van_het_veld__c, Veld__r.Beveiligingen_gerelateerd__c, Veld__r.Naam_netfunctie__c, Veld__r.Schakelaar_gerelateerd__c, Veld__r.Wijziging_gerelateerd__c, Veld__r.Soort_netfunctie__c, Veld__r.Verbindingsnummer__c, 
+                    Asset__c, Asset__r.Naam__c, Asset__r.Fabricaat_form__c, Asset__r.Type_form__c, Asset__r.Serienummer__c, Asset__r.Bouwjaar__c, Asset__r.Station__r.Naam__c
+                    FROM FIELDBUDDY__Work_Order_Logged_Activity__c 
+                    WHERE FIELDBUDDY__Work_Order__c = :workOrder.Id 
+                    OR FIELDBUDDY__Work_Order__r.Hoofdwerkbon__c = :workOrder.Id];
+                    
+        assetInformation = new Map<Id, Map<String, String>>();               
+        wolasAfwijkingen = new List<FIELDBUDDY__Work_Order_Logged_Activity__c>();
+        
+        for (FIELDBUDDY__Work_Order_Logged_Activity__c wola : wolasAll) {
+            assetInformation.put(null, new Map<String, String>());
+            if (wola.Station__c != null) {
+                assetInformation.put(wola.Station__c, new Map<String, String>());
+            } else if (wola.Veld__c != null) {
+                assetInformation.put(wola.Veld__c, new Map<String, String>());  
+            } else if (wola.Asset__c != null) {
+                assetInformation.put(wola.Asset__c, new Map<String, String>()); 
+            }       
+        }
+        
+        for (FIELDBUDDY__Work_Order_Logged_Activity__c wola : wolasAll) {
+            //Fill the asset information map.               
+            if (wola.Station__c != null) {
+                assetInformation.get(wola.Station__c).put(getFieldLabel('Station__c', 'Beheer_station__c'), getFieldValue(wola.Station__r.Beheer_station__c));
+                assetInformation.get(wola.Station__c).put(getFieldLabel('Station__c', 'F_Stationsnummer__c'), getFieldValue(wola.Station__r.F_Stationsnummer__c));
+                assetInformation.get(wola.Station__c).put(getFieldLabel('Station__c', 'F_Toegangsprotocol__c'), getFieldValue(wola.Station__r.F_Toegangsprotocol__c));
+            } else if (wola.Veld__c != null) {  
+                assetInformation.get(wola.Veld__c).put(getFieldLabel('Veld__c', 'Beheerder_van_het_veld__c'), getFieldValue(wola.Veld__r.Beheerder_van_het_veld__c));
+                assetInformation.get(wola.Veld__c).put(getFieldLabel('Veld__c', 'Eigenaar_van_het_veld__c'), getFieldValue(wola.Veld__r.Eigenaar_van_het_veld__c));
+                assetInformation.get(wola.Veld__c).put(getFieldLabel('Veld__c', 'Beveiligingen_gerelateerd__c'), getFieldValue(wola.Veld__r.Beveiligingen_gerelateerd__c));
+                assetInformation.get(wola.Veld__c).put(getFieldLabel('Veld__c', 'Naam_netfunctie__c'), getFieldValue(wola.Veld__r.Naam_netfunctie__c));
+                assetInformation.get(wola.Veld__c).put(getFieldLabel('Veld__c', 'Schakelaar_gerelateerd__c'), getFieldValue(wola.Veld__r.Schakelaar_gerelateerd__c));
+                assetInformation.get(wola.Veld__c).put(getFieldLabel('Veld__c', 'Wijziging_gerelateerd__c'), getFieldValue(wola.Veld__r.Wijziging_gerelateerd__c));
+                assetInformation.get(wola.Veld__c).put(getFieldLabel('Veld__c', 'Soort_netfunctie__c'), getFieldValue(wola.Veld__r.Soort_netfunctie__c));
+                assetInformation.get(wola.Veld__c).put(getFieldLabel('Veld__c', 'Verbindingsnummer__c'), getFieldValue(wola.Veld__r.Verbindingsnummer__c));
+            } else if (wola.Asset__c != null) {
+                assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Fabricaat_form__c'), getFieldValue(wola.Asset__r.Fabricaat_form__c));
+                assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Type_form__c'), getFieldValue(wola.Asset__r.Type_form__c));
+                assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Serienummer__c'), getFieldValue(wola.Asset__r.Serienummer__c));
+                assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Bouwjaar__c'), getFieldValue(wola.Asset__r.Bouwjaar__c));
+            }
+                    
+            //Fill the afwijkingen list
+            if (wola.Afwijkingen__c != null && wola.Afwijkingen__c != '') {
+                wolasAfwijkingen.add(wola); 
+            }
+        }
+                 
+        List<FIELDBUDDY__Work_Order_Logged_Activity_Detail__c> woladsList = [SELECT Id, Name, FIELDBUDDY__Value__c, FIELDBUDDY__Work_Order_Logged_Activity__c
+                                                                             FROM FIELDBUDDY__Work_Order_Logged_Activity_Detail__c
+                                                                             WHERE FIELDBUDDY__Work_Order_Logged_Activity__c IN :wolasAll];
+        
+        wolads = new Map<Id, List<FIELDBUDDY__Work_Order_Logged_Activity_Detail__c>>();
+        
+        //Fill the map
+        for (FIELDBUDDY__Work_Order_Logged_Activity__c wola : wolasAll) {
+            wolads.put(wola.Id, new List<FIELDBUDDY__Work_Order_Logged_Activity_Detail__c>());  
+        }
+        
+        for (FIELDBUDDY__Work_Order_Logged_Activity_Detail__c wolad : woladsList) {            
+            wolads.get(wolad.FIELDBUDDY__Work_Order_Logged_Activity__c).add(wolad);
+        }
+    }
+    
+    //Returns the field label.
+    private String getFieldLabel(String objectType, String field) {
+        Map<String, Schema.SObjectType> schemaMap = Schema.getGlobalDescribe();
+        Schema.SObjectType leadSchema = schemaMap.get(objectType);
+        Map<String, Schema.SObjectField> fieldMap = leadSchema.getDescribe().fields.getMap();
+         
+        return fieldMap.get(field).getDescribe().getLabel();
+    }
+    
+    //Returns empty string if field is empty.
+    private String getFieldValue(String value) {
+        return ((value == null || value == '') ? '' : value);
+    }
+    
+    //Class for the checkitems.
+    public class Checklist {
+        public transient String id { get; set; }
+        public transient String name { get; set; }
+        public transient List<String> checkitems { get; set; }
+        
+        public Checklist() {
+            id = '';
+            name = '';
+            checkitems = new List<String>();
+        }           
+    }   
+}
