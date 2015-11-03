@@ -52,9 +52,9 @@ public with sharing class FB_Backup_WODToPDFController {
         
         fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r');
         fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r.Name');
-        fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r.BillingStreet');
-        fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r.BillingCity');
-        fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r.BillingPostalCode');
+        fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r.ShippingStreet');
+        fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r.ShippingCity');
+        fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r.ShippingPostalCode');
         fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r.Phone');
         
         fieldsToGet.add('FIELDBUDDY__Service_Request__r.FIELDBUDDY__Installed_Product__r.FIELDBUDDY__Location__r');
