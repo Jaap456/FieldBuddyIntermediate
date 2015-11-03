@@ -3,12 +3,11 @@
 *
 * Description       :   Controller for the page that creates a PDF document of a Work Order.
 * Project           :   Fudura Intermediate
-* Version           :   2.3
-* Date              :   29 October 2015
+* Version           :   2.2
+* Date              :   27 May 2015
 * Author (original) :   Lucas van der Ploeg
-* Last modified     :   Jaap Mintjes
 **/
-public with sharing class FB_WorkOrderDetailsToPDFController {
+public with sharing class FB_Backup_WODToPDFController {
 
     public transient final FIELDBUDDY__Work_Order__c workOrder { get; set; }
     public transient FIELDBUDDY__Location__c location { get; set; }
@@ -28,7 +27,7 @@ public with sharing class FB_WorkOrderDetailsToPDFController {
     public transient String DateTime_Opened { get; set; }
     public transient String StartTime { get; set; }
     
-    public FB_WorkOrderDetailsToPDFController(ApexPages.StandardController stdController) {
+    public FB_Backup_WODToPDFController(ApexPages.StandardController stdController) {
         List<String> fieldsToGet = new List<String>();
         
         fieldsToGet.add('Werkbon_omschrijving__c'); 
@@ -200,8 +199,6 @@ public with sharing class FB_WorkOrderDetailsToPDFController {
                 assetInformation.get(wola.Veld__c).put(getFieldLabel('Veld__c', 'Soort_netfunctie__c'), getFieldValue(wola.Veld__r.Soort_netfunctie__c));
                 assetInformation.get(wola.Veld__c).put(getFieldLabel('Veld__c', 'Verbindingsnummer__c'), getFieldValue(wola.Veld__r.Verbindingsnummer__c));
             } else if (wola.Asset__c != null) {
-                assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Veld_Naam__c'), getFieldValue(wola.Asset__r.Veld_Naam__c));
-                assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Station__r.Naam__c'), getFieldValue(wola.Asset__r.Station__r.Naam__c));
                 assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Fabricaat_form__c'), getFieldValue(wola.Asset__r.Fabricaat_form__c));
                 assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Type_form__c'), getFieldValue(wola.Asset__r.Type_form__c));
                 assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Serienummer__c'), getFieldValue(wola.Asset__r.Serienummer__c));
