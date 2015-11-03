@@ -4,9 +4,9 @@
 * Description       :   Controller for the page that creates a PDF document of a Work Order.
 * Project           :   Fudura Intermediate
 * Version           :   2.3
-* Date              :   29 October 2015
+* Date              :   27 May 2015
 * Author (original) :   Lucas van der Ploeg
-* Last modified     :   Jaap Mintjes
+* Editor            :   Jaap Mintjes
 **/
 public with sharing class FB_WorkOrderDetailsToPDFController {
 
@@ -53,9 +53,9 @@ public with sharing class FB_WorkOrderDetailsToPDFController {
         
         fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r');
         fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r.Name');
-        fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r.BillingStreet');
-        fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r.BillingCity');
-        fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r.BillingPostalCode');
+        fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r.ShippingStreet');
+        fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r.ShippingCity');
+        fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r.ShippingPostalCode');
         fieldsToGet.add('Installed_Product__r.FIELDBUDDY__Location__r.FIELDBUDDY__Account__r.Phone');
         
         fieldsToGet.add('FIELDBUDDY__Service_Request__r.FIELDBUDDY__Installed_Product__r.FIELDBUDDY__Location__r');
@@ -200,8 +200,6 @@ public with sharing class FB_WorkOrderDetailsToPDFController {
                 assetInformation.get(wola.Veld__c).put(getFieldLabel('Veld__c', 'Soort_netfunctie__c'), getFieldValue(wola.Veld__r.Soort_netfunctie__c));
                 assetInformation.get(wola.Veld__c).put(getFieldLabel('Veld__c', 'Verbindingsnummer__c'), getFieldValue(wola.Veld__r.Verbindingsnummer__c));
             } else if (wola.Asset__c != null) {
-                assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Veld_Naam__c'), getFieldValue(wola.Asset__r.Veld_Naam__c));
-                assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Station__r.Naam__c'), getFieldValue(wola.Asset__r.Station__r.Naam__c));
                 assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Fabricaat_form__c'), getFieldValue(wola.Asset__r.Fabricaat_form__c));
                 assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Type_form__c'), getFieldValue(wola.Asset__r.Type_form__c));
                 assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Serienummer__c'), getFieldValue(wola.Asset__r.Serienummer__c));
