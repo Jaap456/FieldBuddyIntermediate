@@ -327,8 +327,8 @@ global class FB_ServicePlanScheduler {
                     workOrder.Boekingsnummer__c = servicePlan.Service_Plan_Bundle__r.Boekingsnummer__c;
                     workOrder.Planningstype__c = servicePlan.Service_Plan_Bundle__r.Planningstype__c;
                     
-                    workOrder.Toevoeging_planningstype__c = servicePlan.Toevoeging_planningstype__c;
-                    workOrder.Opmerkingen_voor_binnendienst__c = servicePlan.Opmerkingen_voor_binnendienst__c;
+                    workOrder.Toevoeging_planningstype__c = servicePlan.Service_Plan_Bundle__r.Toevoeging_planningstype__c;
+                    workOrder.Opmerkingen_voor_binnendienst__c = servicePlan.Service_Plan_Bundle__r.Opmerkingen_voor_binnendienst__c;
                     
                     workOrder.Normtijd_Constructie_Manager__c = servicePlan.Service_Plan_Bundle__r.Normtijd_Constructie_Manager__c;
                     workOrder.Normtijd_Medewerker_Secundair__c = servicePlan.Service_Plan_Bundle__r.Normtijd_Medewerker_Secundair__c;
