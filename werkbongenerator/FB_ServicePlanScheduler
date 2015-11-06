@@ -3,9 +3,10 @@
 *
 * Description       :   Class used for scheduling Service Plans.
 * Project           :   Fudura Intermediate
-* Version           :   3.3
-* Date              :   19 May 2015
+* Version           :   3.4
+* Date              :   6 November 2015
 * Author (original) :   Lucas van der Ploeg
+* Last edits        :   Jaap Mintjes
 **/
 global class FB_ServicePlanScheduler {
     
@@ -326,6 +327,9 @@ global class FB_ServicePlanScheduler {
                     workOrder.Boekingsnummer__c = servicePlan.Service_Plan_Bundle__r.Boekingsnummer__c;
                     workOrder.Planningstype__c = servicePlan.Service_Plan_Bundle__r.Planningstype__c;
                     
+                    workOrder.Toevoeging_planningstype__c = servicePlan.Service_Plan_Bundle__r.Toevoeging_planningstype__c;
+                    workOrder.Opmerkingen_voor_binnendienst__c = servicePlan.Service_Plan_Bundle__r.Opmerkingen_voor_binnendienst__c;
+                    
                     workOrder.Normtijd_Constructie_Manager__c = servicePlan.Service_Plan_Bundle__r.Normtijd_Constructie_Manager__c;
                     workOrder.Normtijd_Medewerker_Secundair__c = servicePlan.Service_Plan_Bundle__r.Normtijd_Medewerker_Secundair__c;
                     workOrder.Normtijd_Monteur__c = servicePlan.Service_Plan_Bundle__r.Normtijd_Monteur__c;
@@ -409,7 +413,7 @@ global class FB_ServicePlanScheduler {
         workOrderRecordTypeId = [SELECT Id FROM RecordType WHERE SobjectType = 'FIELDBUDDY__Work_Order__c' AND DeveloperName = 'Hoofdwerkbon'].Id;
         serviceRequestRecordTypeId = [SELECT Id, Name FROM RecordType WHERE SobjectType = 'FIELDBUDDY__Service_Request__c' AND DeveloperName = 'Onderhoud_Storing_Inspectie'].Id;
         
-        servicePlans = [SELECT Id, Service_Plan_Bundle__r.Active__c, Service_Plan_Bundle__r.Omschrijving_bundel__c, Service_Plan_Bundle__r.Boekingsnummer__c, Service_Plan_Bundle__r.Planningstype__c, 
+        servicePlans = [SELECT Id, Service_Plan_Bundle__r.Active__c, Service_Plan_Bundle__r.Omschrijving_bundel__c, Service_Plan_Bundle__r.Boekingsnummer__c, Service_Plan_Bundle__r.Planningstype__c, Service_Plan_Bundle__r.Toevoeging_planningstype__c, Service_Plan_Bundle__r.Opmerkingen_voor_binnendienst__c, 
                                 FIELDBUDDY__Next_Date_of_Execution__c, FIELDBUDDY__Active__c, FIELDBUDDY__End_Date__c, Service_Plan_Bundle__c, FIELDBUDDY__Schedule_Interval__c, FIELDBUDDY__Schedule_Interval_Unit__c, 
                                 FIELDBUDDY__Service_Agreement__c, FIELDBUDDY__Start_Date__c, FIELDBUDDY__Work_Order_Create_In_Advance__c, FIELDBUDDY__Work_Order_Create_In_Advance_Unit__c, FIELDBUDDY__Work_Order_Schedulable_Period_Start__c, 
                                 FIELDBUDDY__Work_Order_Schedulable_Period_Start_Unit__c, FIELDBUDDY__Work_Order_Schedulable_Period_End__c, FIELDBUDDY__Work_Order_Schedulable_Period_End_Unit__c,
