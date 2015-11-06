@@ -117,7 +117,7 @@
                 Adres:
             </td>
             <td>
-                {!account.BillingStreet}        
+                {!account.ShippingStreet}        
             </td>
         </tr> 
         <tr>
@@ -125,7 +125,7 @@
                 Postcode, Plaats:
             </td>
             <td>
-                {!account.BillingPostalCode}   {!account.BillingCity}
+                {!account.ShippingPostalCode}   {!account.ShippingCity}
             </td>
         </tr> 
         <tr>
