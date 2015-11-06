@@ -1,0 +1,566 @@
+/**
+* Service Plan Scheduler
+*
+* Description       :   Class used for scheduling Service Plans.
+* Project           :   Fudura Intermediate
+* Version           :   3.3
+* Date              :   19 May 2015
+* Author (original) :   Lucas van der Ploeg
+**/
+global class FB_ServicePlanScheduler {
+    
+    private static final Map<String, Integer> DAYS_MAP = new Map<String, Integer> {
+                                                                                'Days' => 1,
+                                                                                'Weeks' => 7 }; 
+    public boolean dataExists;
+    private Id workOrderRecordTypeId;
+    private Id serviceRequestRecordTypeId;
+    private List<FIELDBUDDY__Service_Plan__c> servicePlans;
+    private List<FIELDBUDDY__Service_Plan_Item__c> servicePlanItems;
+    private List<FIELDBUDDY__Service_Plan_Coverage__c> servicePlanCoverages;
+    private Map<Id, Veld__c> veldenMap;
+    private Map<Id, Station__c> stationsMap;
+    private Map<Id, Asset__c> assetsMap;
+    private Map<Id, FIELDBUDDY__Work_Order_Item__c> workOrderItemsMap;
+    private Map<Id, FIELDBUDDY__Service_Plan__c> servicePlanMap;
+    
+    private Map<Id, Service_Plan_Bundle__c> bundles;
+    private Map<Id, Map<Date, FIELDBUDDY__Work_Order__c>> bundleToDateToWo;
+    
+    public FB_ServicePlanScheduler() {
+        System.debug('--- Started FB_ServicePlanScheduler');
+    }
+    
+    public void planOneFromSchedule(FIELDBUDDY__Service_Plan__c servicePlan) {  
+        if (dataExists == null) {
+            getData();  
+        }
+        
+        servicePlan = servicePlanMap.get(servicePlan.Id);
+
+        try {
+            planOne(servicePlan);
+                
+            servicePlan.Executed_by_scheduler__c = true;
+            update servicePlan; 
+        } catch (Exception e) {
+            FIELDBUDDY__System_Log__c systemLog = new FIELDBUDDY__System_Log__c();
+            systemLog.FIELDBUDDY__Source__c = 'FB_ServicePlanScheduler';    
+            systemLog.FIELDBUDDY__Action__c = 'planOneFromSchedule';
+            systemLog.FIELDBUDDY__Level__c = 'Critical Error';
+            systemLog.FIELDBUDDY__Type__c = 'Apex';
+            systemLog.FIELDBUDDY__Diagnostic_Data__c = 'Service Plan: ' + servicePlan.Id + '\n';
+            systemLog.FIELDBUDDY__Diagnostic_Data__c += 'Class: FB_ServicePlanScheduler\n'; 
+            systemLog.FIELDBUDDY__Diagnostic_Data__c += 'Line: ' + e.getLineNumber() + '\n';
+            systemLog.FIELDBUDDY__Diagnostic_Data__c += 'Error message: ' + e.getMessage();
+            insert systemLog;
+        }   
+    }
+    
+    private void planOne(FIELDBUDDY__Service_Plan__c servicePlan) {
+        List<FIELDBUDDY__Service_Request__c> serviceRequestsToInsert;
+        List<FIELDBUDDY__Work_Order__c> workOrdersToInsert;
+        List<FIELDBUDDY__Work_Order_Logged_Activity__c> workOrderLoggedActivityToInsert;
+        Date dateToCheck;   
+        List<Date> serviceRequestDates;     
+        Id installedProductIdFromQuery;
+        List<Date> planDates;
+        Date planDate;
+        List<Id> installedProductsFiltered;
+        List<Id> veldenFiltered;
+        List<Id> stationsFiltered;
+        List<Id> assetsFiltered;
+        Veld__c veld;
+        Station__c station;
+        Asset__c asset;
+        List<FIELDBUDDY__Work_Order_Item__c> workOrderItemsFiltered;
+        Map<Id, Id> workOrderItemsFilteredMap;
+        FIELDBUDDY__Service_Request__c serviceRequest;
+        FIELDBUDDY__Work_Order__c workOrder;
+        Date newDateEarlier;
+        Date newDateLater;
+        FIELDBUDDY__Work_Order_Logged_Activity__c workOrderLoggedActivity;  
+        Map<Date, String> SRMap;
+        Map<Date, String> WOMap;
+        Map<Date, FIELDBUDDY__Work_Order__c> mapDateWo;
+        
+        System.debug('--- Started planOne');    
+        
+        serviceRequestsToInsert = new List<FIELDBUDDY__Service_Request__c>();
+        workOrdersToInsert = new List<FIELDBUDDY__Work_Order__c>();
+        workOrderLoggedActivityToInsert = new List<FIELDBUDDY__Work_Order_Logged_Activity__c>();
+        
+        if (servicePlan.FIELDBUDDY__Work_Order_Create_In_Advance_Unit__c.equals('Months')) {
+            dateToCheck = servicePlan.FIELDBUDDY__Next_Date_of_Execution__c.addMonths(-1 * servicePlan.FIELDBUDDY__Work_Order_Create_In_Advance__c.intValue());
+        } else if (servicePlan.FIELDBUDDY__Work_Order_Create_In_Advance_Unit__c.equals('Quarters')) {
+            dateToCheck = servicePlan.FIELDBUDDY__Next_Date_of_Execution__c.addMonths(-3 * servicePlan.FIELDBUDDY__Work_Order_Create_In_Advance__c.intValue());
+        } else if (servicePlan.FIELDBUDDY__Work_Order_Create_In_Advance_Unit__c.equals('Years')) {
+            dateToCheck = servicePlan.FIELDBUDDY__Next_Date_of_Execution__c.addYears(-1 * servicePlan.FIELDBUDDY__Work_Order_Create_In_Advance__c.intValue());
+        } else {
+            dateToCheck = servicePlan.FIELDBUDDY__Next_Date_of_Execution__c.addDays(-1 * (DAYS_MAP.get(servicePlan.FIELDBUDDY__Work_Order_Create_In_Advance_Unit__c) * servicePlan.FIELDBUDDY__Work_Order_Create_In_Advance__c).intValue());        
+        }   
+            
+        if (dateToCheck <= System.today() && servicePlan.FIELDBUDDY__Next_Date_of_Execution__c <= servicePlan.FIELDBUDDY__End_Date__c && servicePlan.FIELDBUDDY__Active__c == true) {
+            planDates = getServicePlanDates(servicePlan);
+            
+            //Get IPs.
+            installedProductsFiltered = new List<Id>();
+            veldenFiltered = new List<Id>();
+            stationsFiltered = new List<Id>();
+            assetsFiltered = new List<Id>();
+            List<Id> ipFullList = new List<Id>();
+            Map<Id, String> typeList = new Map<Id, String>();
+            for (FIELDBUDDY__Service_Plan_Coverage__c servicePlanCoverage : servicePlanCoverages) {
+                if (servicePlanCoverage.FIELDBUDDY__Service_Plan__c.equals(servicePlan.Id)) {
+                    if (servicePlanCoverage.FIELDBUDDY__Installed_Product__c != null) {
+                        installedProductsFiltered.add(servicePlanCoverage.FIELDBUDDY__Installed_Product__c);
+                        ipFullList.add(servicePlanCoverage.FIELDBUDDY__Installed_Product__c);
+                        typeList.put(servicePlanCoverage.FIELDBUDDY__Installed_Product__c, 'ip');
+                    }
+                    if (servicePlanCoverage.Veld__c != null) {
+                        veldenFiltered.add(servicePlanCoverage.Veld__c);
+                        ipFullList.add(servicePlanCoverage.Veld__c);
+                        typeList.put(servicePlanCoverage.Veld__c, 'veld');
+                    }
+                    if (servicePlanCoverage.Station__c != null) {
+                        stationsFiltered.add(servicePlanCoverage.Station__c);   
+                        ipFullList.add(servicePlanCoverage.Station__c);
+                        typeList.put(servicePlanCoverage.Station__c, 'station');
+                    }
+                    if (servicePlanCoverage.Asset__c != null) {
+                        assetsFiltered.add(servicePlanCoverage.Asset__c);       
+                        ipFullList.add(servicePlanCoverage.Asset__c);
+                        typeList.put(servicePlanCoverage.Asset__c, 'asset');
+                    }
+                }   
+            }
+            
+            //Get WOIs.
+            workOrderItemsFiltered = new List<FIELDBUDDY__Work_Order_Item__c>();
+            workOrderItemsFilteredMap = new Map<Id, Id>();
+            for (FIELDBUDDY__Service_Plan_Item__c servicePlanItem : servicePlanItems) {
+                if (servicePlanItem.FIELDBUDDY__Service_Plan__c.equals(servicePlan.Id)) {
+                    workOrderItemsFiltered.add(workOrderItemsMap.get(servicePlanItem.FIELDBUDDY__Work_Order_Item2__c));
+                    workOrderItemsFilteredMap.put(workOrderItemsMap.get(servicePlanItem.FIELDBUDDY__Work_Order_Item2__c).Id, servicePlanItem.Id);   
+                }   
+            }
+                                        
+            serviceRequestDates = new List<Date>();
+            SRMap = new Map<Date, String>();
+            //Execute for dates.
+            for (Date plannedDate : planDates) {
+                //Execute for IPs.
+                for (Id installedProductId : installedProductsFiltered) {
+                    if (SRMap.get(plannedDate) == null) {
+                        boolean proceed = true;
+                        
+                        if (servicePlan.Service_Plan_Bundle__c != null && servicePlan.Service_Plan_Bundle__r.Active__c == true) {
+                            System.debug('First if');
+                            System.debug('bundle: ' + servicePlan.Service_Plan_Bundle__c);
+                            System.debug('planneddate: ' + plannedDate);
+                            System.debug('wo: ' + bundleToDateToWo.get(servicePlan.Service_Plan_Bundle__c).get(plannedDate));
+                            System.debug('bundleToDateToWo: ' + bundleToDateToWo);
+                            if (bundleToDateToWo.get(servicePlan.Service_Plan_Bundle__c).get(plannedDate) != null) {
+                                System.debug('second if');
+                                proceed = false;                
+                            } 
+                        }
+                        
+                        if (proceed) {
+                            SRMap.put(plannedDate, 'sr');
+                            
+                            //Generate SR
+                            serviceRequest = new FIELDBUDDY__Service_Request__c();
+                            serviceRequest.RecordTypeId = serviceRequestRecordTypeId;
+                            serviceRequest.FIELDBUDDY__Installed_Product__c = installedProductId;
+                            serviceRequestsToInsert.add(serviceRequest);
+                            serviceRequestDates.add(plannedDate);
+                        }
+                    }
+                }
+                //Execute for Velden.
+                for (Id veldId : veldenFiltered) {
+                    if (SRMap.get(plannedDate) == null) {
+                        boolean proceed = true;
+                        
+                        if (servicePlan.Service_Plan_Bundle__c != null && servicePlan.Service_Plan_Bundle__r.Active__c == true) {
+                            System.debug('First if');
+                            System.debug('bundle: ' + servicePlan.Service_Plan_Bundle__c);
+                            System.debug('planneddate: ' + plannedDate);
+                            System.debug('wo: ' + bundleToDateToWo.get(servicePlan.Service_Plan_Bundle__c).get(plannedDate));
+                            System.debug('bundleToDateToWo: ' + bundleToDateToWo);
+                            if (bundleToDateToWo.get(servicePlan.Service_Plan_Bundle__c).get(plannedDate) != null) {
+                                System.debug('second if');
+                                proceed = false;                
+                            } 
+                        }
+                        
+                        if (proceed) {
+                            SRMap.put(plannedDate, 'sr');
+                            
+                            veld = veldenMap.get(veldId);
+                            
+                            //Generate SR
+                            serviceRequest = new FIELDBUDDY__Service_Request__c();
+                            serviceRequest.RecordTypeId = serviceRequestRecordTypeId;
+                            serviceRequest.FIELDBUDDY__Installed_Product__c = veld.InstalledProductRef__c;
+                            serviceRequestsToInsert.add(serviceRequest);
+                            serviceRequestDates.add(plannedDate);
+                        }
+                    }
+                }
+                //Execute for Stations.
+                for (Id stationId : stationsFiltered) {
+                    if (SRMap.get(plannedDate) == null) {
+                        boolean proceed = true;
+                        
+                        if (servicePlan.Service_Plan_Bundle__c != null && servicePlan.Service_Plan_Bundle__r.Active__c == true) {
+                            System.debug('First if');
+                            System.debug('bundle: ' + servicePlan.Service_Plan_Bundle__c);
+                            System.debug('planneddate: ' + plannedDate);
+                            System.debug('wo: ' + bundleToDateToWo.get(servicePlan.Service_Plan_Bundle__c).get(plannedDate));
+                            System.debug('bundleToDateToWo: ' + bundleToDateToWo);
+                            if (bundleToDateToWo.get(servicePlan.Service_Plan_Bundle__c).get(plannedDate) != null) {
+                                System.debug('second if');
+                                proceed = false;                
+                            } 
+                        }
+                        
+                        if (proceed) {
+                            SRMap.put(plannedDate, 'sr');
+                            
+                            station = stationsMap.get(stationId);
+                            
+                            //Generate SR
+                            serviceRequest = new FIELDBUDDY__Service_Request__c();
+                            serviceRequest.RecordTypeId = serviceRequestRecordTypeId;
+                            serviceRequest.FIELDBUDDY__Installed_Product__c = station.Installed_Product__c;
+                            serviceRequestsToInsert.add(serviceRequest);
+                            serviceRequestDates.add(plannedDate);
+                        }
+                    }
+                }
+                //Execute for Assets.
+                for (Id assetId : assetsFiltered) {
+                    if (SRMap.get(plannedDate) == null) {
+                        boolean proceed = true;
+                        
+                        if (servicePlan.Service_Plan_Bundle__c != null && servicePlan.Service_Plan_Bundle__r.Active__c == true) {
+                            System.debug('First if');
+                            System.debug('bundle: ' + servicePlan.Service_Plan_Bundle__c);
+                            System.debug('planneddate: ' + plannedDate);
+                            System.debug('wo: ' + bundleToDateToWo.get(servicePlan.Service_Plan_Bundle__c).get(plannedDate));
+                            System.debug('bundleToDateToWo: ' + bundleToDateToWo);
+                            if (bundleToDateToWo.get(servicePlan.Service_Plan_Bundle__c).get(plannedDate) != null) {
+                                System.debug('second if');
+                                proceed = false;                
+                            } 
+                        }
+                        
+                        if (proceed) {
+                            SRMap.put(plannedDate, 'sr');
+                            
+                            asset = assetsMap.get(assetId);
+                            
+                            //Generate SR
+                            serviceRequest = new FIELDBUDDY__Service_Request__c();
+                            serviceRequest.RecordTypeId = serviceRequestRecordTypeId;                       
+                            serviceRequest.FIELDBUDDY__Installed_Product__c = asset.InstalledProductRef__c;
+                            serviceRequestsToInsert.add(serviceRequest);
+                            serviceRequestDates.add(plannedDate);
+                        }
+                    }
+                }
+            }
+            
+            insert serviceRequestsToInsert;
+            
+            WOMap = new Map<Date, String>();
+            Integer index = 0;
+            //Execute for SRs.
+            for(FIELDBUDDY__Service_Request__c serviceRequest2 : serviceRequestsToInsert) {
+                planDate = serviceRequestDates.get(index);
+                index++;
+                //Generate WO
+                workOrder = new FIELDBUDDY__Work_Order__c();
+                workOrder.FIELDBUDDY__Service_Request__c = serviceRequest2.Id;
+                workOrder.FIELDBUDDY__Status__c = 'Klaar voor KTP';
+                workOrder.FIELDBUDDY__Type__c = 'Periodiek onderhoud';
+                workOrder.Period_Planned_Date__c = planDate;
+                workOrder.Installed_Product__c = serviceRequest2.FIELDBUDDY__Installed_Product__c;
+                workOrder.Service_Contract__c = servicePlan.FIELDBUDDY__Service_Agreement__c;
+                workOrder.RecordTypeId = workOrderRecordTypeId;
+                
+                workOrder.Normtijd_Constructie_Manager__c = servicePlan.Normtijd_Constructie_Manager__c;
+                workOrder.Normtijd_Medewerker_Secundair__c = servicePlan.Normtijd_Medewerker_Secundair__c;
+                workOrder.Normtijd_Monteur__c = servicePlan.Normtijd_Monteur__c;
+                workOrder.Normtijd_Technicus__c = servicePlan.Normtijd_Technicus__c;
+                
+                if(servicePlan.FIELDBUDDY__Work_Order_Schedulable_Period_Start_Unit__c.equals('Months')) {
+                    newDateEarlier = planDate.addMonths(-1 * servicePlan.FIELDBUDDY__Work_Order_Schedulable_Period_Start__c.intValue());
+                } else if(servicePlan.FIELDBUDDY__Work_Order_Schedulable_Period_Start_Unit__c.equals('Quarters')) {
+                    newDateEarlier = planDate.addMonths(-3 * servicePlan.FIELDBUDDY__Work_Order_Schedulable_Period_Start__c.intValue());    
+                } else if(servicePlan.FIELDBUDDY__Work_Order_Schedulable_Period_Start_Unit__c.equals('Years')) {
+                    newDateEarlier = planDate.addYears(-1 * servicePlan.FIELDBUDDY__Work_Order_Schedulable_Period_Start__c.intValue()); 
+                } else {
+                    newDateEarlier = planDate.addDays(-1 * (DAYS_MAP.get(servicePlan.FIELDBUDDY__Work_Order_Schedulable_Period_Start_Unit__c) * servicePlan.FIELDBUDDY__Work_Order_Schedulable_Period_Start__c).intValue());                            
+                }
+                        
+                if(servicePlan.FIELDBUDDY__Work_Order_Schedulable_Period_End_Unit__c.equals('Months')) {
+                    newDateLater = planDate.addMonths(servicePlan.FIELDBUDDY__Work_Order_Schedulable_Period_End__c.intValue()).addDays(-1);
+                } else if(servicePlan.FIELDBUDDY__Work_Order_Schedulable_Period_End_Unit__c.equals('Quarters')) {
+                    newDateLater = planDate.addMonths(3 * servicePlan.FIELDBUDDY__Work_Order_Schedulable_Period_End__c.intValue()).addDays(-1); 
+                } else if(servicePlan.FIELDBUDDY__Work_Order_Schedulable_Period_End_Unit__c.equals('Years')) {
+                    newDateLater = planDate.addYears(1 * servicePlan.FIELDBUDDY__Work_Order_Schedulable_Period_End__c.intValue()).addDays(-1);  
+                } else {
+                    newDateLater = planDate.addDays((DAYS_MAP.get(servicePlan.FIELDBUDDY__Work_Order_Schedulable_Period_End_Unit__c) * servicePlan.FIELDBUDDY__Work_Order_Schedulable_Period_End__c).intValue());                           
+                }
+                        
+                workOrder.Periode_startdatum__c = newDateEarlier;
+                workOrder.Periode_einddatum__c = newDateLater;
+                
+                WOMap.put(newDateEarlier, 'wo');
+                
+                if (servicePlan.Service_Plan_Bundle__c != null && servicePlan.Service_Plan_Bundle__r.Active__c == true) {
+                    workOrder.Werkbon_omschrijving__c = servicePlan.Service_Plan_Bundle__r.Omschrijving_bundel__c;
+                    workOrder.Boekingsnummer__c = servicePlan.Service_Plan_Bundle__r.Boekingsnummer__c;
+                    workOrder.Planningstype__c = servicePlan.Service_Plan_Bundle__r.Planningstype__c;
+                    
+                    workOrder.Normtijd_Constructie_Manager__c = servicePlan.Service_Plan_Bundle__r.Normtijd_Constructie_Manager__c;
+                    workOrder.Normtijd_Medewerker_Secundair__c = servicePlan.Service_Plan_Bundle__r.Normtijd_Medewerker_Secundair__c;
+                    workOrder.Normtijd_Monteur__c = servicePlan.Service_Plan_Bundle__r.Normtijd_Monteur__c;
+                    workOrder.Normtijd_Technicus__c = servicePlan.Service_Plan_Bundle__r.Normtijd_Technicus__c;
+                    
+                    if (bundleToDateToWo.get(servicePlan.Service_Plan_Bundle__c) == null) {
+                        mapDateWo = new Map<Date, FIELDBUDDY__Work_Order__c>(); 
+                    } else {
+                        mapDateWo = bundleToDateToWo.get(servicePlan.Service_Plan_Bundle__c);
+                    }               
+                    
+                    mapDateWo.put(planDate, workOrder);
+                    bundleToDateToWo.put(servicePlan.Service_Plan_Bundle__c, mapDateWo);
+                }
+                
+                workOrdersToInsert.add(workOrder);
+            }
+            
+            insert workOrdersToInsert;
+            
+            for (Date plannedDate : planDates) {
+                if (servicePlan.Service_Plan_Bundle__c != null && servicePlan.Service_Plan_Bundle__r.Active__c == true) {
+                    if (bundleToDateToWo.get(servicePlan.Service_Plan_Bundle__c).get(plannedDate) != null) {
+                        FIELDBUDDY__Work_Order__c wo = bundleToDateToWo.get(servicePlan.Service_Plan_Bundle__c).get(plannedDate);
+                        
+                        if (WOMap.get(wo.Periode_startdatum__c) == null) {                      
+                            workOrdersToInsert.add(wo); 
+                        }
+                    } 
+                }       
+            }   
+                    
+            //Execute for WOs.
+            Integer ipIndex = 0;
+            
+            for (FIELDBUDDY__Work_Order__c workorder2 : workOrdersToInsert) {
+                //Generate WOLA
+                for (FIELDBUDDY__Work_Order_Item__c workOrderItem : workOrderItemsFiltered) {
+                    for (Id ipInstance : ipFullList) {
+                        workOrderLoggedActivity = new FIELDBUDDY__Work_Order_Logged_Activity__c();
+                        workOrderLoggedActivity.Name = workOrderItem.Name;
+                        workOrderLoggedActivity.Service_Plan_Item__c = workOrderItemsFilteredMap.get(workOrderItem.Id);
+                        workOrderLoggedActivity.FIELDBUDDY__Work_Order_Item__c = workOrderItem.Id;
+                        workOrderLoggedActivity.FIELDBUDDY__Work_Order__c = workorder2.Id;
+                        workOrderLoggedActivity.Type__c = 'Checklijst';                     
+                        
+                        if (typeList.get(ipInstance).equals('veld')) {
+                            workOrderLoggedActivity.Veld__c = ipInstance;
+                        } else if (typeList.get(ipInstance).equals('station')) {
+                            workOrderLoggedActivity.Station__c = ipInstance;            
+                        } else if (typeList.get(ipInstance).equals('asset')) {
+                            workOrderLoggedActivity.Asset__c = ipInstance;  
+                        }
+    
+                        ipIndex++;
+                        
+                        workOrderLoggedActivityToInsert.add(workOrderLoggedActivity);   
+                    }
+                }
+            }
+            
+            insert workOrderLoggedActivityToInsert;         
+        }
+            
+        System.debug('--- Ended planOne');
+    }
+    
+    public void getData() {
+        List<Id> workOrderItemIds;
+        List<Id> stationIds;
+        List<Id> veldenIds;
+        List<Id> assetIds;
+        List<Station__c> stations;
+        List<Veld__c> velden;
+        List<Asset__c> assets;
+        List<FIELDBUDDY__Work_Order_Item__c> workOrderItems;
+        List<Service_Plan_Bundle__c> bundles;
+        
+        System.debug('--- Started getData');
+        
+        workOrderRecordTypeId = [SELECT Id FROM RecordType WHERE SobjectType = 'FIELDBUDDY__Work_Order__c' AND DeveloperName = 'Hoofdwerkbon'].Id;
+        serviceRequestRecordTypeId = [SELECT Id, Name FROM RecordType WHERE SobjectType = 'FIELDBUDDY__Service_Request__c' AND DeveloperName = 'Onderhoud_Storing_Inspectie'].Id;
+        
+        servicePlans = [SELECT Id, Service_Plan_Bundle__r.Active__c, Service_Plan_Bundle__r.Omschrijving_bundel__c, Service_Plan_Bundle__r.Boekingsnummer__c, Service_Plan_Bundle__r.Planningstype__c, 
+                                FIELDBUDDY__Next_Date_of_Execution__c, FIELDBUDDY__Active__c, FIELDBUDDY__End_Date__c, Service_Plan_Bundle__c, FIELDBUDDY__Schedule_Interval__c, FIELDBUDDY__Schedule_Interval_Unit__c, 
+                                FIELDBUDDY__Service_Agreement__c, FIELDBUDDY__Start_Date__c, FIELDBUDDY__Work_Order_Create_In_Advance__c, FIELDBUDDY__Work_Order_Create_In_Advance_Unit__c, FIELDBUDDY__Work_Order_Schedulable_Period_Start__c, 
+                                FIELDBUDDY__Work_Order_Schedulable_Period_Start_Unit__c, FIELDBUDDY__Work_Order_Schedulable_Period_End__c, FIELDBUDDY__Work_Order_Schedulable_Period_End_Unit__c,
+                                Normtijd_Constructie_Manager__c, Normtijd_Medewerker_Secundair__c, Normtijd_Monteur__c, Normtijd_Technicus__c,
+                                Service_Plan_Bundle__r.Normtijd_Constructie_Manager__c, Service_Plan_Bundle__r.Normtijd_Medewerker_Secundair__c, Service_Plan_Bundle__r.Normtijd_Monteur__c, Service_Plan_Bundle__r.Normtijd_Technicus__c
+                        FROM FIELDBUDDY__Service_Plan__c];
+        
+        servicePlanItems = [SELECT Id, FIELDBUDDY__Service_Plan__c, FIELDBUDDY__Work_Order_Item2__c
+                            FROM FIELDBUDDY__Service_Plan_Item__c];                     
+        
+        servicePlanCoverages = [SELECT Id, FIELDBUDDY__Service_Plan__c, FIELDBUDDY__Installed_Product__c, Veld__c, Station__c, Asset__c
+                                FROM FIELDBUDDY__Service_Plan_Coverage__c];                     
+        
+        bundles = [SELECT Id 
+                   FROM Service_Plan_Bundle__c];
+        
+        bundleToDateToWo = new Map<Id, Map<Date, FIELDBUDDY__Work_Order__c>>();     
+        for (Service_Plan_Bundle__c bundle : bundles) {
+            Map<Date, FIELDBUDDY__Work_Order__c> mapDateWo = new Map<Date, FIELDBUDDY__Work_Order__c>();
+            bundleToDateToWo.put(bundle.Id, mapDateWo);
+        }       
+        
+        servicePlanMap = new Map<Id, FIELDBUDDY__Service_Plan__c>();
+        for (FIELDBUDDY__Service_Plan__c servicePlan : servicePlans) {
+            servicePlanMap.put(servicePlan.Id, servicePlan);
+        }
+        
+        stationIds = new List<Id>();
+        veldenIds = new List<Id>();
+        assetIds = new List<Id>();
+            
+        for (FIELDBUDDY__Service_Plan_Coverage__c servicePlanCoverage : servicePlanCoverages) {
+            if (servicePlanCoverage.Veld__c != null) {
+                veldenIds.add(servicePlanCoverage.Veld__c); 
+            }
+            if (servicePlanCoverage.Station__c != null) {
+                stationIds.add(servicePlanCoverage.Station__c);
+            }
+            if (servicePlanCoverage.Asset__c != null) {
+                assetIds.add(servicePlanCoverage.Asset__c);
+            }
+        }
+            
+        veldenMap = new Map<Id, Veld__c>();
+        stationsMap = new Map<Id, Station__c>();
+        assetsMap = new Map<Id, Asset__c>();
+                                    
+        stations = [SELECT Id, Installed_Product__c
+                    FROM Station__c
+                    WHERE Id IN : stationIds];
+                        
+        for (Station__c stationItem : stations) {
+            stationsMap.put(stationItem.Id, stationItem);
+        }
+                        
+        velden = [SELECT Id, Asset__c, Asset__r.Station__r.Installed_Product__c, Asset__r.Veld__c, InstalledProductRef__c
+                  FROM Veld__c
+                  WHERE Id IN : veldenIds];
+                      
+        for (Veld__c veldItem : velden) {
+            veldenMap.put(veldItem.Id, veldItem);
+        }
+                        
+        assets = [SELECT Id, Veld__c, Station__c, Station__r.Installed_Product__c, Veld__r.Asset__c, InstalledProductRef__c
+                  FROM Asset__c
+                  WHERE Id IN : assetIds];
+                      
+        for(Asset__c assetItem : assets) {
+            assetsMap.put(assetItem.Id, assetItem);
+        }
+            
+        workOrderItemIds = new List<Id>();
+        for (FIELDBUDDY__Service_Plan_Item__c servicePlanItem : servicePlanItems) {
+            workOrderItemIds.add(servicePlanItem.FIELDBUDDY__Work_Order_Item2__c);
+        }
+                                
+        workOrderItems = [SELECT Id, Name, FIELDBUDDY__Applicable_Product_Types__c, FIELDBUDDY__Applicable_Work_Order_Types__c, FIELDBUDDY__Quantity__c, FIELDBUDDY__ExtID__c, FIELDBUDDY__Item_Code__c, FIELDBUDDY__Tax_Amount__c, FIELDBUDDY__Tax_Rate__c, FIELDBUDDY__Type__c, FIELDBUDDY__Unit__c, FIELDBUDDY__Unit_Price_Excluding_Tax__c, FIELDBUDDY__Unit_Price_Including_Tax__c, FIELDBUDDY__Unit_Price_Including_Tax_input__c 
+                          FROM FIELDBUDDY__Work_Order_Item__c
+                          WHERE Id IN :workOrderItemIds];
+                
+        workOrderItemsMap = new Map<Id, FIELDBUDDY__Work_Order_Item__c>();        
+        for (FIELDBUDDY__Work_Order_Item__c workOrderItem : workOrderItems) {
+            workOrderItemsMap.put(workOrderItem.Id, workOrderItem);     
+        }
+        
+        dataExists = true;
+        
+        System.debug('--- Ended getData');
+    }
+    
+    private List<Date> getServicePlanDates(FIELDBUDDY__Service_Plan__c servicePlan) {
+        List<Date> planDates;
+        
+        planDates = new List<Date>();
+        
+        if (servicePlan.FIELDBUDDY__Work_Order_Create_In_Advance_Unit__c.equals('Months')) {
+            while (servicePlan.FIELDBUDDY__Next_Date_of_Execution__c.addMonths(-1 * servicePlan.FIELDBUDDY__Work_Order_Create_In_Advance__c.intValue()) <= System.today()){
+                planDates.add(servicePlan.FIELDBUDDY__Next_Date_of_Execution__c);
+                
+                if (!proceed(servicePlan)) {
+                    break;      
+                }           
+            }
+        } else if (servicePlan.FIELDBUDDY__Work_Order_Create_In_Advance_Unit__c.equals('Quarters')) {
+            while (servicePlan.FIELDBUDDY__Next_Date_of_Execution__c.addMonths(-3 * servicePlan.FIELDBUDDY__Work_Order_Create_In_Advance__c.intValue()) <= System.today()){
+                planDates.add(servicePlan.FIELDBUDDY__Next_Date_of_Execution__c);
+                
+                if (!proceed(servicePlan)) {
+                    break;      
+                }
+            }       
+        } else if (servicePlan.FIELDBUDDY__Work_Order_Create_In_Advance_Unit__c.equals('Years')) {
+            while (servicePlan.FIELDBUDDY__Next_Date_of_Execution__c.addYears(-1 * servicePlan.FIELDBUDDY__Work_Order_Create_In_Advance__c.intValue()) <= System.today()){
+                planDates.add(servicePlan.FIELDBUDDY__Next_Date_of_Execution__c);
+                
+                if (!proceed(servicePlan)) {
+                    break;      
+                }
+            }       
+        } else {
+            while (servicePlan.FIELDBUDDY__Next_Date_of_Execution__c.addDays(-1 * (DAYS_MAP.get(servicePlan.FIELDBUDDY__Work_Order_Create_In_Advance_Unit__c) * servicePlan.FIELDBUDDY__Work_Order_Create_In_Advance__c).intValue()) <= System.today()){
+                planDates.add(servicePlan.FIELDBUDDY__Next_Date_of_Execution__c);
+                
+                if (!proceed(servicePlan)) {
+                    break;      
+                }
+            }   
+        }       
+    
+        return planDates;
+    }
+    
+    private boolean proceed(FIELDBUDDY__Service_Plan__c servicePlan) {
+        Date newDate;
+        
+        if (servicePlan.FIELDBUDDY__Schedule_Interval_Unit__c.equals('Months')) {
+            newDate = servicePlan.FIELDBUDDY__Next_Date_of_Execution__c.addMonths(servicePlan.FIELDBUDDY__Schedule_Interval__c.intValue());         
+        } else if (servicePlan.FIELDBUDDY__Schedule_Interval_Unit__c.equals('Quarters')) {
+            newDate = servicePlan.FIELDBUDDY__Next_Date_of_Execution__c.addMonths(3 * servicePlan.FIELDBUDDY__Schedule_Interval__c.intValue()); 
+        } else if (servicePlan.FIELDBUDDY__Schedule_Interval_Unit__c.equals('Years')) {
+            newDate = servicePlan.FIELDBUDDY__Next_Date_of_Execution__c.addYears(1 * servicePlan.FIELDBUDDY__Schedule_Interval__c.intValue());  
+        } else {
+            newDate = servicePlan.FIELDBUDDY__Next_Date_of_Execution__c.addDays((DAYS_MAP.get(servicePlan.FIELDBUDDY__Schedule_Interval_Unit__c) * servicePlan.FIELDBUDDY__Schedule_Interval__c).intValue());           
+        }
+        
+        servicePlan.FIELDBUDDY__Next_Date_of_Execution__c = newDate;
+        
+        if (servicePlan.FIELDBUDDY__Next_Date_of_Execution__c > servicePlan.FIELDBUDDY__End_Date__c) {
+            return false;
+        }
+        
+        return true;    
+    }
+}
