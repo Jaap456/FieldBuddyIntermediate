@@ -165,7 +165,7 @@ public with sharing class FB_WorkOrderDetailsToPDFController {
         wolasAll = [SELECT Id, Name, Afwijkingen__c, FIELDBUDDY__Work_Order__r.Eigenaar_Naam__c, 
                     Station__c, Station__r.Naam__c, Station__r.Beheer_station__c, Station__r.F_Stationsnummer__c, Station__r.F_Toegangsprotocol__c,
                     Veld__c, Veld__r.Naam__c, Veld__r.Beheerder_van_het_veld__c, Veld__r.Eigenaar_van_het_veld__c, Veld__r.Beveiligingen_gerelateerd__c, Veld__r.Naam_netfunctie__c, Veld__r.Schakelaar_gerelateerd__c, Veld__r.Wijziging_gerelateerd__c, Veld__r.Soort_netfunctie__c, Veld__r.Verbindingsnummer__c, 
-                    Asset__c, Asset__r.Naam__c, Asset__r.Fabricaat_form__c, Asset__r.Type_form__c, Asset__r.Serienummer__c, Asset__r.Bouwjaar__c, Asset__r.Station__r.Naam__c, Asset__r.Veld_Naam__c,
+                    Asset__c, Asset__r.Naam__c, Asset__r.Fabricaat_form__c, Asset__r.Type_form__c, Asset__r.Serienummer__c, Asset__r.Bouwjaar__c, Asset__r.Station__r.Naam__c, Asset__r.Veld_Naam__c
                     FROM FIELDBUDDY__Work_Order_Logged_Activity__c 
                     WHERE FIELDBUDDY__Work_Order__c = :workOrder.Id 
                     OR FIELDBUDDY__Work_Order__r.Hoofdwerkbon__c = :workOrder.Id];
