@@ -28,7 +28,7 @@ public with sharing class FB_WorkOrderDetailsToPDFController {
     public transient String DateTime_Opened { get; set; }
     public transient String StartTime { get; set; }
     
-    public FB_Backup_WODToPDFController(ApexPages.StandardController stdController) {
+    public FB_WorkOrderDetailsToPDFController(ApexPages.StandardController stdController) {
         List<String> fieldsToGet = new List<String>();
         
         fieldsToGet.add('Werkbon_omschrijving__c'); 
@@ -94,7 +94,7 @@ public with sharing class FB_WorkOrderDetailsToPDFController {
         this.sr = this.workOrder.FIELDBUDDY__Service_Request__r;
         
         //Get WOLA information. Used for Onderhoud.
-        FIELDBUDDY__Work_Order_Logged_Activity__c[] wolas = [SELECT Id, Name, Asset__r.Naam__c, Station__r.Naam__c, Veld__r.Naam__c, FIELDBUDDY__Work_Order_Item__c
+        FIELDBUDDY__Work_Order_Logged_Activity__c[] wolas = [SELECT Id, Name, Asset__r.Naam__c, Asset__r.Veld_Naam__c, Asset__r.Station__r.Naam__c, Station__r.Naam__c, Veld__r.Naam__c, FIELDBUDDY__Work_Order_Item__c
                                                             FROM FIELDBUDDY__Work_Order_Logged_Activity__c
                                                             WHERE FIELDBUDDY__Work_Order__c = :this.workorder.Id];
             
