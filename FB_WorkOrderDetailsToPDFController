@@ -3,9 +3,10 @@
 *
 * Description       :   Controller for the page that creates a PDF document of a Work Order.
 * Project           :   Fudura Intermediate
-* Version           :   2.2
+* Version           :   2.3
 * Date              :   27 May 2015
 * Author (original) :   Lucas van der Ploeg
+* Latest edits      :   Jaap Mintjes
 **/
 public with sharing class FB_Backup_WODToPDFController {
 
@@ -77,7 +78,7 @@ public with sharing class FB_Backup_WODToPDFController {
         fieldsToGet.add('FIELDBUDDY__Service_Request__r.Ontstaan_Storing__c');
         fieldsToGet.add('FIELDBUDDY__Service_Request__r.FIELDBUDDY__DateTime_Opened__c');
         fieldsToGet.add('FIELDBUDDY__Service_Request__r.Herkomst__c');
-        
+
         if (!Test.isRunningTest()) {    
             stdController.addFields(fieldsToGet);       
         }
@@ -203,6 +204,8 @@ public with sharing class FB_Backup_WODToPDFController {
                 assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Type_form__c'), getFieldValue(wola.Asset__r.Type_form__c));
                 assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Serienummer__c'), getFieldValue(wola.Asset__r.Serienummer__c));
                 assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Bouwjaar__c'), getFieldValue(wola.Asset__r.Bouwjaar__c));
+                assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Veld_Naam__c'), getFieldValue(wola.Asset__r.Veld_Naam__c));
+                assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Station__c'), getFieldValue(wola.Asset__r.Station__r.Naam__c)); 
             }
                     
             //Fill the afwijkingen list
