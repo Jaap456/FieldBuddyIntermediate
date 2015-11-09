@@ -213,7 +213,7 @@
                 Postcode, Plaats:
             </td>
             <td>
-                {!accountShippingPostalCode}   {!account.ShippingCity}
+                {!account.ShippingPostalCode}   {!account.ShippingCity}
             </td>
         </tr> 
         <tr>
