@@ -443,6 +443,14 @@
                 {!workorder.Storing_Oplossing__c}   
             </td>
         </tr>
+        <tr>
+            <td>
+                Tijdstip van afronden storingsbezoek:
+            </td>
+            <td>
+                {!workorder.T_End_Time__c}   
+            </td>
+        </tr>
         </table>
         
         <br/><br/>
