@@ -327,38 +327,6 @@
                 {!workorder.Station__c}
             </td>
         </tr> 
-        <tr>
-            <td>
-                Melden bij:
-            </td>
-            <td>
-                {!location.Melden_bij__r.FirstName} {!location.Melden_bij__r.LastName}
-            </td>
-        </tr>
-        <tr>
-            <td>
-                Vergunning verplicht:
-            </td>
-            <td>
-                {!location.F_Vergunning_verplicht__c}
-            </td>
-        </tr>
-        <tr>
-            <td>
-                Single line schema beschikbaar:
-            </td>
-            <td>
-                {!workorder.Single_line_schema_beschikbaar__c}
-            </td>
-        </tr>
-        <tr>
-            <td>
-                Bijzonderheden:
-            </td>
-            <td>
-                {!location.Description__c}
-            </td>
-        </tr>
     </table>
     
     <br/>
