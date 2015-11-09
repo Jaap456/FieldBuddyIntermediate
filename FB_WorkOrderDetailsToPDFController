@@ -3,11 +3,12 @@
 *
 * Description       :   Controller for the page that creates a PDF document of a Work Order.
 * Project           :   Fudura Intermediate
-* Version           :   2.2
-* Date              :   27 May 2015
+* Version           :   2.3
+* Date              :   3 November 2015
 * Author (original) :   Lucas van der Ploeg
+* Latest edits      :   Jaap Mintjes
 **/
-public with sharing class FB_Backup_WODToPDFController {
+public with sharing class FB_WorkOrderDetailsToPDFController {
 
     public transient final FIELDBUDDY__Work_Order__c workOrder { get; set; }
     public transient FIELDBUDDY__Location__c location { get; set; }
@@ -27,7 +28,7 @@ public with sharing class FB_Backup_WODToPDFController {
     public transient String DateTime_Opened { get; set; }
     public transient String StartTime { get; set; }
     
-    public FB_Backup_WODToPDFController(ApexPages.StandardController stdController) {
+    public FB_WorkOrderDetailsToPDFController(ApexPages.StandardController stdController) {
         List<String> fieldsToGet = new List<String>();
         
         fieldsToGet.add('Werkbon_omschrijving__c'); 
@@ -77,7 +78,7 @@ public with sharing class FB_Backup_WODToPDFController {
         fieldsToGet.add('FIELDBUDDY__Service_Request__r.Ontstaan_Storing__c');
         fieldsToGet.add('FIELDBUDDY__Service_Request__r.FIELDBUDDY__DateTime_Opened__c');
         fieldsToGet.add('FIELDBUDDY__Service_Request__r.Herkomst__c');
-        
+
         if (!Test.isRunningTest()) {    
             stdController.addFields(fieldsToGet);       
         }
@@ -93,7 +94,7 @@ public with sharing class FB_Backup_WODToPDFController {
         this.sr = this.workOrder.FIELDBUDDY__Service_Request__r;
         
         //Get WOLA information. Used for Onderhoud.
-        FIELDBUDDY__Work_Order_Logged_Activity__c[] wolas = [SELECT Id, Name, Asset__r.Naam__c, Station__r.Naam__c, Veld__r.Naam__c, FIELDBUDDY__Work_Order_Item__c
+        FIELDBUDDY__Work_Order_Logged_Activity__c[] wolas = [SELECT Id, Name, Asset__r.Naam__c, Asset__r.Veld_Naam__c, Asset__r.Station__r.Naam__c, Station__r.Naam__c, Veld__r.Naam__c, FIELDBUDDY__Work_Order_Item__c
                                                             FROM FIELDBUDDY__Work_Order_Logged_Activity__c
                                                             WHERE FIELDBUDDY__Work_Order__c = :this.workorder.Id];
             
@@ -164,7 +165,7 @@ public with sharing class FB_Backup_WODToPDFController {
         wolasAll = [SELECT Id, Name, Afwijkingen__c, FIELDBUDDY__Work_Order__r.Eigenaar_Naam__c, 
                     Station__c, Station__r.Naam__c, Station__r.Beheer_station__c, Station__r.F_Stationsnummer__c, Station__r.F_Toegangsprotocol__c,
                     Veld__c, Veld__r.Naam__c, Veld__r.Beheerder_van_het_veld__c, Veld__r.Eigenaar_van_het_veld__c, Veld__r.Beveiligingen_gerelateerd__c, Veld__r.Naam_netfunctie__c, Veld__r.Schakelaar_gerelateerd__c, Veld__r.Wijziging_gerelateerd__c, Veld__r.Soort_netfunctie__c, Veld__r.Verbindingsnummer__c, 
-                    Asset__c, Asset__r.Naam__c, Asset__r.Fabricaat_form__c, Asset__r.Type_form__c, Asset__r.Serienummer__c, Asset__r.Bouwjaar__c, Asset__r.Station__r.Naam__c
+                    Asset__c, Asset__r.Naam__c, Asset__r.Fabricaat_form__c, Asset__r.Type_form__c, Asset__r.Serienummer__c, Asset__r.Bouwjaar__c, Asset__r.Station__r.Naam__c, Asset__r.Veld_Naam__c
                     FROM FIELDBUDDY__Work_Order_Logged_Activity__c 
                     WHERE FIELDBUDDY__Work_Order__c = :workOrder.Id 
                     OR FIELDBUDDY__Work_Order__r.Hoofdwerkbon__c = :workOrder.Id];
@@ -203,6 +204,8 @@ public with sharing class FB_Backup_WODToPDFController {
                 assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Type_form__c'), getFieldValue(wola.Asset__r.Type_form__c));
                 assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Serienummer__c'), getFieldValue(wola.Asset__r.Serienummer__c));
                 assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Bouwjaar__c'), getFieldValue(wola.Asset__r.Bouwjaar__c));
+                assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Veld_Naam__c'), getFieldValue(wola.Asset__r.Veld_Naam__c));
+                assetInformation.get(wola.Asset__c).put(getFieldLabel('Asset__c', 'Station__c'), getFieldValue(wola.Asset__r.Station__r.Naam__c)); 
             }
                     
             //Fill the afwijkingen list
