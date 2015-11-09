@@ -44,6 +44,7 @@ public with sharing class FB_WorkOrderDetailsToPDFController {
         fieldsToGet.add('Advies_na_onderhoud__c');
         fieldsToGet.add('Ploegleider__r.Name');
         fieldsToGet.add('T_Start_Time__c');
+        fieldsToGet.add('T_End_Time__c');
         fieldsToGet.add('Storing_Constatering__c');
         fieldsToGet.add('Storing_Oorzaak__c');
         fieldsToGet.add('Storing_Oplossing__c');
